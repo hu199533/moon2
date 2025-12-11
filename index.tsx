@@ -1,16 +1,3 @@
-
-import '@angular/compiler';
-import { bootstrapApplication } from '@angular/platform-browser';
-import { provideHttpClient } from '@angular/common/http';
-import { provideZonelessChangeDetection } from '@angular/core';
-
-import { AppComponent } from './src/app.component';
-
-bootstrapApplication(AppComponent, {
-  providers: [
-    provideZonelessChangeDetection(),
-    provideHttpClient(),
-  ],
-}).catch(err => console.error(err));
+// This file's content has been moved to index.js to ensure compatibility with static hosting platforms like Netlify.
 
 // AI Studio always uses an `index.tsx` file for all project types.
