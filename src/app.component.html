@@ -1,0 +1,244 @@
+
+<div class="min-h-screen p-4 sm:p-6 md:p-8">
+  <div class="container max-w-7xl mx-auto bg-white rounded-2xl shadow-2xl overflow-hidden">
+    <header class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-8 text-center relative">
+      <div class="absolute top-4 right-4 ltr:right-4 ltr:left-auto rtl:left-4 rtl:right-auto flex space-x-2 rtl:space-x-reverse">
+        <button (click)="setLanguage('en')" class="px-3 py-1 rounded-md text-sm font-medium transition" [class]="language() === 'en' ? 'bg-white text-indigo-600' : 'bg-white/20 text-white hover:bg-white/30'">EN</button>
+        <button (click)="setLanguage('ar')" class="px-3 py-1 rounded-md text-sm font-medium transition" [class]="language() === 'ar' ? 'bg-white text-indigo-600' : 'bg-white/20 text-white hover:bg-white/30'">AR</button>
+      </div>
+      <h1 class="text-4xl md:text-5xl font-bold mb-2">{{ t().headerTitle }}</h1>
+      <p class="text-lg opacity-90">{{ t().headerSubtitle }}</p>
+    </header>
+
+    <main class="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
+      <!-- Control Panel -->
+      <div class="control-panel bg-gray-50 p-6 rounded-xl border border-gray-200 h-fit">
+        <div class="form-group mb-5">
+          <label for="docType" class="block font-bold mb-2 text-gray-700">{{ t().docTypeLabel }}</label>
+          <select id="docType" [value]="docType()" (change)="onDocTypeChange($event)" class="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+            <option value="resume">{{ t().docTypeResume }}</option>
+            <option value="invoice">{{ t().docTypeInvoice }}</option>
+            <option value="newsletter">{{ t().docTypeNewsletter }}</option>
+            <option value="report">{{ t().docTypeReport }}</option>
+          </select>
+        </div>
+
+        <div class="form-group mb-5">
+          <label for="docDescription" class="block font-bold mb-2 text-gray-700">{{ t().descriptionLabel }}</label>
+          <textarea id="docDescription" [value]="description()" (input)="onDescriptionChange($event)" [placeholder]="t().descriptionPlaceholder" class="w-full p-3 border-2 border-gray-300 rounded-lg h-36 resize-y focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"></textarea>
+        </div>
+
+        <div class="form-group mb-6">
+          <label for="imageUpload" class="block font-bold mb-2 text-gray-700">{{ t().imageUploadLabel }}</label>
+          <input type="file" id="imageUpload" (change)="onFileChange($event)" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 rtl:file:ml-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+        </div>
+
+        <button (click)="generateDocument()" [disabled]="isLoading()" class="w-full p-4 font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg transition-transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center space-x-2 rtl:space-x-reverse">
+          @if (isLoading()) {
+            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>{{ t().generatingButton }}</span>
+          } @else {
+            <span>{{ t().generateButton }}</span>
+          }
+        </button>
+
+        <button (click)="downloadPDF()" [disabled]="isDownloadDisabled()" class="w-full p-4 mt-3 font-bold text-white bg-green-600 rounded-lg transition-transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100">
+          {{ t().downloadButton }}
+        </button>
+
+        @if (statusMessage(); as msg) {
+          <div class="mt-4 p-4 rounded-lg text-center"
+               [class]="{
+                 'bg-red-100 text-red-700': msg.type === 'error',
+                 'bg-green-100 text-green-700': msg.type === 'success',
+                 'bg-blue-100 text-blue-700': msg.type === 'info'
+               }">
+            {{ msg.text }}
+          </div>
+        }
+      </div>
+
+      <!-- Preview Panel -->
+      <div class="preview-panel bg-white border-2 border-gray-200 rounded-xl p-2 sm:p-4 md:p-8 min-h-[600px] shadow-inner">
+        <div #documentPreview>
+          @if (isLoading()) {
+            <div class="flex flex-col items-center justify-center h-full text-center text-indigo-600">
+              <svg class="animate-spin h-10 w-10 text-indigo-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <p class="text-lg font-semibold">{{ t().statusLoading }}</p>
+            </div>
+          } @else if (generatedContent(); as content) {
+            <!-- Document Templates -->
+            <div class="doc-resume max-w-4xl mx-auto p-5">
+              @switch (docType()) {
+                @case ('resume') {
+                  @if (isResume(content)) {
+                    <div class="doc-header text-center mb-8 pb-5 border-b-4 border-indigo-500">
+                      @if (uploadedImage()) {
+                        <img [src]="uploadedImage()" class="w-36 h-36 rounded-full object-cover mx-auto mb-5 border-4 border-indigo-500" alt="Photo">
+                      }
+                      <h2 class="text-3xl font-bold text-gray-800 mb-1">{{ content.name }}</h2>
+                      <div class="text-lg text-indigo-600 font-semibold mb-2">{{ content.title }}</div>
+                      <div class="text-sm text-gray-600">
+                        📧 {{ content.email }} | 📱 {{ content.phone }} | 🌐 {{ content.linkedin }}
+                      </div>
+                    </div>
+                    <div class="doc-section mb-6">
+                      <h3 class="text-xl font-bold text-indigo-600 border-b-2 border-indigo-500 pb-2 mb-3">{{ t().resumeSummary }}</h3>
+                      <p class="text-gray-700 leading-relaxed">{{ content.summary }}</p>
+                    </div>
+                    <div class="doc-section mb-6">
+                      <h3 class="text-xl font-bold text-indigo-600 border-b-2 border-indigo-500 pb-2 mb-3">{{ t().resumeExperience }}</h3>
+                      @for(exp of content.experience; track exp.company) {
+                        <div class="mb-4">
+                          <p class="font-bold text-gray-800">{{ exp.position }} | {{ exp.company }}</p>
+                          <p class="text-sm text-gray-500 mb-1">{{ exp.period }}</p>
+                          <ul class="list-disc list-inside text-gray-700 space-y-1">
+                            @for(ach of exp.achievements; track $index) {
+                              <li>{{ ach }}</li>
+                            }
+                          </ul>
+                        </div>
+                      }
+                    </div>
+                    <div class="doc-section mb-6">
+                      <h3 class="text-xl font-bold text-indigo-600 border-b-2 border-indigo-500 pb-2 mb-3">{{ t().resumeEducation }}</h3>
+                      @for(edu of content.education; track edu.institution) {
+                        <div class="mb-2">
+                          <p class="font-bold text-gray-800">{{ edu.degree }}</p>
+                          <p class="text-gray-600">{{ edu.institution }} | {{ edu.period }}</p>
+                        </div>
+                      }
+                    </div>
+                    <div class="doc-section">
+                      <h3 class="text-xl font-bold text-indigo-600 border-b-2 border-indigo-500 pb-2 mb-3">{{ t().resumeSkills }}</h3>
+                      <ul class="flex flex-wrap gap-2">
+                        @for(skill of content.skills; track $index) {
+                          <li class="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm">{{ skill }}</li>
+                        }
+                      </ul>
+                    </div>
+                  }
+                }
+                @case ('invoice') {
+                  @if (isInvoice(content)) {
+                    <div class="doc-header text-center mb-8 pb-5 border-b-4 border-indigo-500">
+                        <h2 class="text-3xl font-bold text-gray-800 mb-1">{{ t().invoiceTitle }}</h2>
+                        <div class="text-lg text-indigo-600 font-semibold mb-2">{{ t().invoiceNumber }}: {{ content.invoiceNumber }}</div>
+                        <div class="text-sm text-gray-600">{{ t().invoiceDate }}: {{ content.date }}</div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                        <div class="doc-section">
+                            <h3 class="text-xl font-bold text-indigo-600 border-b-2 border-indigo-500 pb-2 mb-3">{{ t().invoiceSellerInfo }}</h3>
+                            <p class="font-bold text-gray-800">{{ content.seller.name }}</p>
+                            <p class="text-gray-700 leading-relaxed">{{ content.seller.address }}<br>{{ content.seller.phone }}<br>{{ content.seller.email }}</p>
+                        </div>
+                        <div class="doc-section">
+                            <h3 class="text-xl font-bold text-indigo-600 border-b-2 border-indigo-500 pb-2 mb-3">{{ t().invoiceClientInfo }}</h3>
+                            <p class="font-bold text-gray-800">{{ content.client.name }}</p>
+                            <p class="text-gray-700 leading-relaxed">{{ content.client.address }}<br>{{ content.client.phone }}</p>
+                        </div>
+                    </div>
+                    <div class="doc-section">
+                        <h3 class="text-xl font-bold text-indigo-600 border-b-2 border-indigo-500 pb-2 mb-3">{{ t().invoiceDetails }}</h3>
+                        <table class="w-full text-right ltr:text-left border-collapse">
+                            <thead>
+                                <tr class="bg-indigo-600 text-white">
+                                    <th class="p-3 border border-indigo-300">{{ t().invoiceDescription }}</th>
+                                    <th class="p-3 border border-indigo-300">{{ t().invoiceQuantity }}</th>
+                                    <th class="p-3 border border-indigo-300">{{ t().invoicePrice }}</th>
+                                    <th class="p-3 border border-indigo-300">{{ t().invoiceTotal }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for(item of content.items; track $index) {
+                                    <tr class="border-b">
+                                        <td class="p-3 border">{{ item.description }}</td>
+                                        <td class="p-3 border">{{ item.quantity }}</td>
+                                        <td class="p-3 border">{{ item.price }}</td>
+                                        <td class="p-3 border">{{ item.total }}</td>
+                                    </tr>
+                                }
+                                <tr class="bg-gray-100 font-bold">
+                                    <td colspan="3" class="p-3 ltr:text-right rtl:text-left">{{ t().invoiceGrandTotal }}:</td>
+                                    <td class="p-3 border">{{ content.total }} {{ content.currency }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                  }
+                }
+                 @case ('newsletter') {
+                  @if (isNewsletter(content)) {
+                    <div class="doc-header text-center mb-8 pb-5 border-b-4 border-indigo-500">
+                      @if (uploadedImage()) {
+                        <img [src]="uploadedImage()" class="w-full h-48 object-cover rounded-lg mx-auto mb-5" alt="Newsletter Banner">
+                      }
+                      <h2 class="text-3xl font-bold text-gray-800 mb-1">{{ content.title }}</h2>
+                      <div class="text-lg text-indigo-600 font-semibold mb-2">{{ content.date }}</div>
+                    </div>
+                     <div class="doc-section mb-6">
+                      <h3 class="text-xl font-bold text-indigo-600 border-b-2 border-indigo-500 pb-2 mb-3">📰 {{ content.mainNews.title }}</h3>
+                      <p class="text-gray-700 leading-relaxed">{{ content.mainNews.content }}</p>
+                    </div>
+                    <div class="doc-section mb-6">
+                      <h3 class="text-xl font-bold text-indigo-600 border-b-2 border-indigo-500 pb-2 mb-3">{{ t().newsletterUpdates }}</h3>
+                      <ul class="list-disc list-inside text-gray-700 space-y-1">
+                        @for(update of content.updates; track $index) {
+                          <li>{{ update }}</li>
+                        }
+                      </ul>
+                    </div>
+                    <div class="doc-section">
+                      <h3 class="text-xl font-bold text-indigo-600 border-b-2 border-indigo-500 pb-2 mb-3">🌟 {{ content.events.title }}</h3>
+                      <p class="text-gray-700 leading-relaxed">{{ content.events.content }}</p>
+                    </div>
+                  }
+                }
+                @case ('report') {
+                  @if (isReport(content)) {
+                    <div class="doc-header text-center mb-8 pb-5 border-b-4 border-indigo-500">
+                      <h2 class="text-3xl font-bold text-gray-800 mb-1">{{ content.title }}</h2>
+                      <div class="text-lg text-indigo-600 font-semibold mb-2">{{ content.subtitle }}</div>
+                      <div class="text-sm text-gray-600">{{ t().reportAuthor }}: {{ content.author }} | {{ t().reportDate }}: {{ content.date }}</div>
+                    </div>
+                     <div class="doc-section mb-6">
+                      <h3 class="text-xl font-bold text-indigo-600 border-b-2 border-indigo-500 pb-2 mb-3">{{ t().reportSummary }}</h3>
+                      <p class="text-gray-700 leading-relaxed">{{ content.summary }}</p>
+                    </div>
+                    <div class="doc-section mb-6">
+                      <h3 class="text-xl font-bold text-indigo-600 border-b-2 border-indigo-500 pb-2 mb-3">{{ t().reportIntroduction }}</h3>
+                      <p class="text-gray-700 leading-relaxed">{{ content.introduction }}</p>
+                    </div>
+                    <div class="doc-section mb-6">
+                      <h3 class="text-xl font-bold text-indigo-600 border-b-2 border-indigo-500 pb-2 mb-3">{{ t().reportFindings }}</h3>
+                      <ul class="list-disc list-inside text-gray-700 space-y-1">
+                        @for(finding of content.findings; track $index) {
+                          <li>{{ finding }}</li>
+                        }
+                      </ul>
+                    </div>
+                     <div class="doc-section">
+                      <h3 class="text-xl font-bold text-indigo-600 border-b-2 border-indigo-500 pb-2 mb-3">{{ t().reportRecommendations }}</h3>
+                      <p class="text-gray-700 leading-relaxed">{{ content.recommendations }}</p>
+                    </div>
+                  }
+                }
+              }
+            </div>
+          } @else {
+            <div class="flex flex-col items-center justify-center h-full text-center text-gray-500">
+                <h3 class="text-2xl font-bold mb-2">{{ t().previewInitialHeader }}</h3>
+                <p>{{ t().previewInitialBody }}</p>
+            </div>
+          }
+        </div>
+      </div>
+    </main>
+  </div>
+</div>

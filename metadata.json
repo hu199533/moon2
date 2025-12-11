@@ -1,0 +1,5 @@
+{
+  "name": "AI Smart Document Generator",
+  "description": "An intelligent document generator powered by Google Gemini. Create professional resumes, invoices, newsletters, and reports in seconds with AI assistance, and download them as PDFs. The application supports both English and Arabic.",
+  "requestFramePermissions": []
+}
