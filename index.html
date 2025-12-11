@@ -9,6 +9,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    // Polyfill process.env to prevent runtime errors in the browser.
+    // The user must set the API_KEY in the Netlify environment variables
+    // for the application to be functional.
+    window.process = window.process || { env: {} };
+  </script>
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
@@ -36,5 +42,6 @@
 </head>
 <body class="bg-gradient-to-br from-indigo-500 to-purple-600">
   <app-root></app-root>
+  <script type="module" src="index.tsx"></script>
 </body>
 </html>

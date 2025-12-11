@@ -7,14 +7,17 @@ import { DocType, DocumentContent } from '../models/document.model';
   providedIn: 'root',
 })
 export class GeminiService {
-  private ai: GoogleGenAI;
+  private ai: GoogleGenAI | null = null;
 
   constructor() {
-    // API Key must be set in the environment variables
-    if (!process.env.API_KEY) {
-      throw new Error("API_KEY environment variable not set.");
+    // Safely access the API key without crashing the app on startup.
+    // The key must be set in the environment variables of the deployment platform (e.g., Netlify).
+    const apiKey = (window as any).process?.env?.API_KEY;
+    if (apiKey) {
+      this.ai = new GoogleGenAI({ apiKey: apiKey });
+    } else {
+      console.error("Gemini API Key is not configured. The application will load, but generation will fail.");
     }
-    this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
 
   private getPromptAndSchema(docType: DocType, description: string, lang: 'ar' | 'en') {
@@ -128,6 +131,13 @@ export class GeminiService {
   }
 
   async generateDocumentContent(docType: DocType, description: string, lang: 'ar' | 'en'): Promise<DocumentContent> {
+    if (!this.ai) {
+      const errorMsg = lang === 'ar' 
+        ? 'لم يتم تكوين مفتاح Gemini API. يرجى التأكد من إعداده في متغيرات البيئة الخاصة بالنشر.'
+        : 'Gemini API key is not configured. Please ensure it is set in the deployment environment variables.';
+      throw new Error(errorMsg);
+    }
+
     const { prompt, schema } = this.getPromptAndSchema(docType, description, lang);
     const errorMessages = {
         ar: 'فشل في توليد المحتوى. يرجى المحاولة مرة أخرى.',
